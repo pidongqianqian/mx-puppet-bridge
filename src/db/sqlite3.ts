@@ -18,6 +18,7 @@ import * as Database from "better-sqlite3";
 import { Log } from "../log";
 import { IDatabaseConnector, ISqlCommandParameters, ISqlRow } from "./connector";
 import * as prometheus from "prom-client";
+import {Statement} from "sqlite3";
 const log = new Log("SQLite3");
 
 export class SQLite3 implements IDatabaseConnector {
@@ -64,5 +65,18 @@ export class SQLite3 implements IDatabaseConnector {
 	public async Exec(sql: string): Promise<void> {
 		log.silly("Exec:", sql);
 		return this.db.exec(sql);
+	}
+
+	public async Prepare(sql: string): Database.Statement {
+		return this.db.prepare(sql);
+	}
+	
+	public async BulkInsert(sql: string, items?: ISqlCommandParameters[]): Promise<void> {
+		log.silly("BulkInsert:", sql);
+		const insert = this.db.prepare(sql);
+		const insertMany = this.db.transaction((data) => {
+			for (const obj of data) insert.run(obj);
+		});
+		insertMany(items);
 	}
 }

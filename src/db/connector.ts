@@ -33,6 +33,7 @@ export interface IDatabaseConnector {
 	Get(sql: string, parameters?: ISqlCommandParameters): Promise<ISqlRow|null>;
 	All(sql: string, parameters?: ISqlCommandParameters): Promise<ISqlRow[]>;
 	Run(sql: string, parameters?: ISqlCommandParameters, returnId?: string): Promise<number>;
+	BulkInsert(sql: string, items?: ISqlCommandParameters[]): Promise<void>;
 	Close(): Promise<void>;
 	Exec(sql: string): Promise<void>;
 }

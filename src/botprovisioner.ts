@@ -509,6 +509,53 @@ Usage: \`listrooms\``,
 Usage: \`listgroups\``,
 			withPid: false,
 		});
+		this.registerCommand("syncChannels", {
+			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
+				if (!this.bridge.hooks.listRooms) {
+					await sendMessage("Feature not implemented!");
+					return;
+				}
+				const descs = await this.provisioner.getDescMxid(sender);
+				if (descs.length === 0) {
+					await sendMessage("Nothing linked yet!");
+					return;
+				}
+				let reply = "";
+				for (const d of descs) {
+					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
+					log.verbose("descs", rooms);
+					reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
+					for (const r of rooms) {
+						let replyPart = "";
+						if (r.category) {
+							replyPart = `\n### ${r.name}:\n\n`;
+						} else {
+							const roomInfo = await this.bridge.roomSync.maybeGet({
+								puppetId: d.puppetId,
+								roomId: r.id!,
+							});
+							// TODO 检查user_team_channel是否有相关记录, 如果没有则邀请, 有则不邀请
+							const client = this.bridge.botIntent.underlyingClient;
+							//const client = await this.bridge.roomSync.getRoomOp(roomId);
+							if (roomInfo?.mxid === "!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host") {
+								await client.inviteUser(sender, '!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host');
+							}
+						}
+						if (reply.length + replyPart.length > MAX_MSG_SIZE) {
+							await sendMessage(reply);
+							reply = "";
+						}
+						reply += replyPart;
+					}
+				}
+				await sendMessage("syncChannels");
+			},
+			help: `Synchronize and list all groups that are linked currently, from all links.
+
+Usage: \`syncChannels\``,
+			withPid: false,
+		});
+	
 		this.registerCommand("settype", {
 			fn: async (puppetId: number, param: string, sendMessage: SendMessageFn) => {
 				if (!PUPPET_TYPES.includes(param as PuppetType)) {

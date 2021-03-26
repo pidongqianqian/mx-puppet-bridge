@@ -93,4 +93,21 @@ export class Postgres implements IDatabaseConnector {
 		await this.db.none(sql);
 		return;
 	}
+
+	public async BulkInsert(sql: string, items: ISqlCommandParameters[]): Promise<void> {
+		log.silly("BulkInsert:", sql);
+		this.db.tx(t => {
+			const queries = items.map(l => {
+				return t.none(sql, l);
+			});
+			return t.batch(queries);
+		})
+			.then(data => {
+				// SUCCESS
+				// data = array of null-s
+			})
+			.catch(error => {
+				// ERROR
+			});
+	}
 }
