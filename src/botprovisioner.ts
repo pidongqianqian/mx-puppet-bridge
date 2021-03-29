@@ -555,6 +555,65 @@ Usage: \`listgroups\``,
 Usage: \`syncChannels\``,
 			withPid: false,
 		});
+
+		this.registerCommand("unSyncChannels", {
+			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
+				if (!this.bridge.hooks.listRooms) {
+					await sendMessage("Feature not implemented!");
+					return;
+				}
+				const descs = await this.provisioner.getDescMxid(sender);
+				if (descs.length === 0) {
+					await sendMessage("Nothing linked yet!");
+					return;
+				}
+				let reply = "";
+				log.verbose("descs", descs);
+				for (const d of descs) {
+					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
+					const teamIds = new Set<string>();
+					for (const r of rooms) {
+						if (r.id!) {
+							const teamIdAndChannelId = r.id!.split('-');
+							teamIds.add(teamIdAndChannelId[0])
+						}
+					}
+					log.verbose("descs teamIds", teamIds);
+					for (const id of teamIds) {
+						this.bridge.emit("afterUnlink", sender, id);
+					}
+					log.verbose("rooms", rooms);
+					// reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
+					// for (const r of rooms) {
+					// 	let replyPart = "";
+					// 	if (r.category) {
+					// 		replyPart = `\n### ${r.name}:\n\n`;
+					// 	} else {
+					// 		const roomInfo = await this.bridge.roomSync.maybeGet({
+					// 			puppetId: d.puppetId,
+					// 			roomId: r.id!,
+					// 		});
+					// 		// TODO 检查user_team_channel是否有相关记录, 有则踢出用户并删除记录
+					// 		const client = this.bridge.botIntent.underlyingClient;
+					// 		//const client = await this.bridge.roomSync.getRoomOp(roomId);
+					// 		if (roomInfo?.mxid === "!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host") {
+					// 			await client.inviteUser(sender, '!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host');
+					// 		}
+					// 	}
+					// 	if (reply.length + replyPart.length > MAX_MSG_SIZE) {
+					// 		await sendMessage(reply);
+					// 		reply = "";
+					// 	}
+					// 	reply += replyPart;
+					// }
+				}
+				await sendMessage("syncChannels");
+			},
+			help: `Synchronize and list all groups that are linked currently, from all links.
+
+Usage: \`unSyncChannels\``,
+			withPid: false,
+		});
 	
 		this.registerCommand("settype", {
 			fn: async (puppetId: number, param: string, sendMessage: SendMessageFn) => {
@@ -752,5 +811,10 @@ Usage: \`fixmute <room resolvable>\``,
 			formatted_body: html,
 			format: "org.matrix.custom.html",
 		});
+	}
+	
+	public kickUser(userId: string, roomId: string, reason: string) {
+		const client = this.bridge.botIntent.underlyingClient;
+		return client.kickUser(userId, roomId, reason);
 	}
 }

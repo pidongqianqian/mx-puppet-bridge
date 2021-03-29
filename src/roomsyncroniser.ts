@@ -303,6 +303,7 @@ export class RoomSyncroniser {
 				}
 				room.isDirect = Boolean(data.isDirect);
 				created = true;
+				this.bridge.emit("afterCreateRoom", room, invites ? Array.from(invites).pop() : '');
 			} else {
 				mxid = room.mxid;
 
