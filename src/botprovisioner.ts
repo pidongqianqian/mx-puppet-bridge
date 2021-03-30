@@ -17,6 +17,7 @@ import { Provisioner } from "./provisioner";
 import { PuppetType, PUPPET_TYPES } from "./db/puppetstore";
 import { Log } from "./log";
 import { TimedCache } from "./structures/timedcache";
+import {globalVar} from "./global"
 import * as MarkdownIt from "markdown-it";
 import { MatrixClient, MessageEvent, TextualMessageEventContent } from "@sorunome/matrix-bot-sdk";
 
@@ -158,22 +159,23 @@ export class BotProvisioner {
 				break;
 			}
 			case "unlink": {
-				if (!param || !param.trim()) {
-					await this.sendMessage(roomId, `ERROR: You need to specify an index to unlink`);
-					return;
-				}
-				const puppetId = Number(param.trim());
-				if (isNaN(puppetId)) {
-					await this.sendMessage(roomId, `ERROR: The index must be a number`);
-					return;
-				}
-				const data = await this.provisioner.get(puppetId);
-				if (!data || data.puppetMxid !== sender) {
-					await this.sendMessage(roomId, `ERROR: You must own the index`);
-					return;
-				}
-				await this.provisioner.delete(sender, puppetId);
-				await this.sendMessage(roomId, `Removed link with ID ${puppetId}`);
+				await this.unlinkTeam(roomId, sender, param);
+				// if (!param || !param.trim()) {
+				// 	await this.sendMessage(roomId, `ERROR: You need to specify an index to unlink`);
+				// 	return;
+				// }
+				// const puppetId = Number(param.trim());
+				// if (isNaN(puppetId)) {
+				// 	await this.sendMessage(roomId, `ERROR: The index must be a number`);
+				// 	return;
+				// }
+				// const data = await this.provisioner.get(puppetId);
+				// if (!data || data.puppetMxid !== sender) {
+				// 	await this.sendMessage(roomId, `ERROR: You must own the index`);
+				// 	return;
+				// }
+				// await this.provisioner.delete(sender, puppetId);
+				// await this.sendMessage(roomId, `Removed link with ID ${puppetId}`);
 				break;
 			}
 			default: {
@@ -204,6 +206,33 @@ export class BotProvisioner {
 						" all commands or `help <command>` to get help on a specific command.");
 				}
 			}
+		}
+	}
+	
+	private async unlinkTeam(roomId, sender, param) {
+		if (!param || !param.trim()) {
+			if (roomId) {
+				await this.sendMessage(roomId, `ERROR: You need to specify an index to unlink`);
+			}
+			return;
+		}
+		const puppetId = Number(param.trim());
+		if (isNaN(puppetId)) {
+			if (roomId) {
+				await this.sendMessage(roomId, `ERROR: The index must be a number`);
+			}
+			return;
+		}
+		const data = await this.provisioner.get(puppetId);
+		if (!data || data.puppetMxid !== sender) {
+			if (roomId) {
+				await this.sendMessage(roomId, `ERROR: You must own the index`);
+			}
+			return;
+		}
+		await this.provisioner.delete(sender, puppetId);
+		if (roomId) {
+			await this.sendMessage(roomId, `Removed link with ID ${puppetId}`);
 		}
 	}
 
@@ -515,16 +544,20 @@ Usage: \`listgroups\``,
 					await sendMessage("Feature not implemented!");
 					return;
 				}
+				log.verbose("descs syncChannels", sender);
+				globalVar.currentUserMxid = sender;
 				const descs = await this.provisioner.getDescMxid(sender);
 				if (descs.length === 0) {
 					await sendMessage("Nothing linked yet!");
 					return;
 				}
 				let reply = "";
+				log.verbose("descs", descs);
 				for (const d of descs) {
 					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
-					log.verbose("descs", rooms);
-					reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
+					log.verbose("rooms", rooms);
+					
+					// reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
 					for (const r of rooms) {
 						let replyPart = "";
 						if (r.category) {
@@ -534,18 +567,28 @@ Usage: \`listgroups\``,
 								puppetId: d.puppetId,
 								roomId: r.id!,
 							});
-							// TODO 检查user_team_channel是否有相关记录, 如果没有则邀请, 有则不邀请
-							const client = this.bridge.botIntent.underlyingClient;
-							//const client = await this.bridge.roomSync.getRoomOp(roomId);
-							if (roomInfo?.mxid === "!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host") {
-								await client.inviteUser(sender, '!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host');
+							if (roomInfo) {
+								const parts = await this.bridge.roomSync.getPartsFromMxid(roomInfo.mxid);
+								if (!parts) {
+									return;
+								}
+								log.verbose("roomInfo.mxid: ", roomInfo.mxid);
+								this.bridge.bridgeRoom(parts).then(create => {
+									log.verbose("bridgeRoom create: ", create);
+									log.verbose("bridgeRoom sender: ", sender);
+									// @ts-ignore
+									if (!create) {
+										const client = this.bridge.botIntent.underlyingClient;
+										client.inviteUser(sender, roomInfo.mxid)
+									}
+								});
 							}
 						}
-						if (reply.length + replyPart.length > MAX_MSG_SIZE) {
-							await sendMessage(reply);
-							reply = "";
-						}
-						reply += replyPart;
+					// 	if (reply.length + replyPart.length > MAX_MSG_SIZE) {
+					// 		await sendMessage(reply);
+					// 		reply = "";
+					// 	}
+					// 	reply += replyPart;
 					}
 				}
 				await sendMessage("syncChannels");
@@ -607,7 +650,8 @@ Usage: \`syncChannels\``,
 					// 	reply += replyPart;
 					// }
 				}
-				await sendMessage("syncChannels");
+				await this.unlinkTeam('', sender, param);
+				await sendMessage("unSyncChannels");
 			},
 			help: `Synchronize and list all groups that are linked currently, from all links.
 

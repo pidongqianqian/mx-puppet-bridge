@@ -20,6 +20,7 @@ import { IRoomStoreEntry } from "./db/interfaces";
 import { MatrixClient } from "@sorunome/matrix-bot-sdk";
 import { Lock } from "./structures/lock";
 import { Buffer } from "buffer";
+import {globalVar} from "./global"
 import { StringFormatter } from "./structures/stringformatter";
 
 const log = new Log("RoomSync");
@@ -170,7 +171,9 @@ export class RoomSyncroniser {
 				for (const user of createInfo.invites) {
 					invites.add(user);
 				}
+				log.verbose("invites: ", invites);
 				let userId = await client.getUserId();
+				log.verbose("invites userId: ", userId);
 				if (!this.bridge.AS.isNamespacedUser(userId)) {
 					// alright, let's only allow puppets to create rooms here
 					let found = false;
@@ -187,6 +190,7 @@ export class RoomSyncroniser {
 					invites.add(userId);
 					userId = await client.getUserId();
 				}
+				log.verbose("invites1: ", invites);
 				invites.delete(userId);
 				// alright, we need to make sure that someone of our namespace is in the room
 				// else messages won't relay correclty. Let's do that here.
@@ -208,6 +212,7 @@ export class RoomSyncroniser {
 					invites.delete(this.bridge.botIntent.userId);
 					client = this.bridge.botIntent.underlyingClient;
 					userId = this.bridge.botIntent.userId;
+					log.verbose("invites2: ", invites);
 				} else if (this.bridge.AS.isNamespacedUser(userId)) {
 					// and if it is a direct room, we do *not* want our ghost to create it, if possible
 					const puppetData = await this.bridge.provisioner.get(data.puppetId);
@@ -227,6 +232,7 @@ export class RoomSyncroniser {
 							}
 						}
 					}
+					log.verbose("invites3: ", invites);
 				}
 				const updateProfile = await Util.ProcessProfileUpdate(
 					null, data, this.bridge.protocol.namePatterns.room,
@@ -303,7 +309,6 @@ export class RoomSyncroniser {
 				}
 				room.isDirect = Boolean(data.isDirect);
 				created = true;
-				this.bridge.emit("afterCreateRoom", room, invites ? Array.from(invites).pop() : '');
 			} else {
 				mxid = room.mxid;
 
@@ -367,7 +372,8 @@ export class RoomSyncroniser {
 					log.warn("Failed to update the room", updateErr.error || updateErr.body || updateErr);
 				}
 			}
-
+			this.bridge.emit("afterLinkRoom", room, globalVar.currentUserMxid);
+			
 			if (doUpdate) {
 				log.verbose("Storing update to DB");
 				await this.roomStore.set(room);
