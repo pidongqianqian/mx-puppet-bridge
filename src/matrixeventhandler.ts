@@ -648,6 +648,7 @@ export class MatrixEventHandler {
 		await intent.joinRoom(roomId);
 		await this.bridge.userSync.getClient(parts); // create user, if it doesn't exist
 		this.bridge.metrics.room?.inc({ type: roomData.isDirect ? "dm" : "group", protocol: this.bridge.protocol.id });
+		this.bridge.emit('afterCreateDM', roomId, inviteId, newRoomId)
 	}
 
 	// tslint:disable-next-line no-any

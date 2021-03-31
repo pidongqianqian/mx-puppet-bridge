@@ -273,6 +273,8 @@ export class BotProvisioner {
 		}
 		log.info(`Sending status message for puppetId ${puppetId}...`);
 		const mxid = await this.provisioner.getMxid(puppetId);
+		log.info(`Sending status message for mxid ${mxid}...`);
+		globalVar.currentUserMxid = mxid;
 		let roomMxid: string = "";
 		let sendStr = "[Status] ";
 		let client: MatrixClient | undefined;
@@ -545,7 +547,6 @@ Usage: \`listgroups\``,
 					return;
 				}
 				log.verbose("descs syncChannels", sender);
-				globalVar.currentUserMxid = sender;
 				const descs = await this.provisioner.getDescMxid(sender);
 				if (descs.length === 0) {
 					await sendMessage("Nothing linked yet!");
@@ -563,23 +564,25 @@ Usage: \`listgroups\``,
 						if (r.category) {
 							replyPart = `\n### ${r.name}:\n\n`;
 						} else {
-							const roomInfo = await this.bridge.roomSync.maybeGet({
+							const {mxid, alias} = await this.bridge.getMxidAndAlias({
 								puppetId: d.puppetId,
 								roomId: r.id!,
 							});
-							if (roomInfo) {
-								const parts = await this.bridge.roomSync.getPartsFromMxid(roomInfo.mxid);
+							log.verbose("roomInfo.mxid: ", mxid);
+							log.verbose("roomInfo.alias: ", alias);
+							if (alias) {
+								const id = mxid ? mxid : alias;
+								const parts = await this.bridge.roomSync.getPartsFromMxid(id);
 								if (!parts) {
 									return;
 								}
-								log.verbose("roomInfo.mxid: ", roomInfo.mxid);
 								this.bridge.bridgeRoom(parts).then(create => {
 									log.verbose("bridgeRoom create: ", create);
 									log.verbose("bridgeRoom sender: ", sender);
 									// @ts-ignore
-									if (!create) {
+									if (!create && mxid) {
 										const client = this.bridge.botIntent.underlyingClient;
-										client.inviteUser(sender, roomInfo.mxid)
+										client.inviteUser(sender, mxid)
 									}
 								});
 							}
