@@ -84,6 +84,10 @@ export class BotProvisioner {
 			senderInfo.statusRoom = roomId;
 			await this.bridge.puppetStore.setMxidInfo(senderInfo);
 		}
+		globalVar.currentRoomMxid = senderInfo.statusRoom;
+		globalVar.currentUserMxid = sender;
+		
+		log.verbose("globalVar", globalVar.currentRoomMxid, globalVar.currentUserMxid)
 		// parse the argument and parameters of the message
 		const [, arg, param] = event.textBody.split(/([^ ]*)(?: (.*))?/);
 		log.info(`Got message to process with arg=${arg}`);
@@ -274,7 +278,6 @@ export class BotProvisioner {
 		log.info(`Sending status message for puppetId ${puppetId}...`);
 		const mxid = await this.provisioner.getMxid(puppetId);
 		log.info(`Sending status message for mxid ${mxid}...`);
-		globalVar.currentUserMxid = mxid;
 		let roomMxid: string = "";
 		let sendStr = "[Status] ";
 		let client: MatrixClient | undefined;

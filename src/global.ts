@@ -1,3 +1,4 @@
 export const globalVar = {
-    currentUserMxid: ''
+    currentUserMxid: '',
+    currentRoomMxid: ''
 }
