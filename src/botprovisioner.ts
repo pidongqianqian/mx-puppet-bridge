@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 import { PuppetBridge } from "./puppetbridge";
-import { RetDataFn, IRetData, IRemoteRoom, IPuppetData } from "./interfaces";
+import {RetDataFn, IRetData, IRemoteRoom, IPuppetData, IRemoteEmote, IRemoteEmoteFragment} from "./interfaces";
 import { Provisioner } from "./provisioner";
 import { PuppetType, PUPPET_TYPES } from "./db/puppetstore";
 import { Log } from "./log";
@@ -164,22 +164,6 @@ export class BotProvisioner {
 			}
 			case "unlink": {
 				await this.unlinkTeam(roomId, sender, param);
-				// if (!param || !param.trim()) {
-				// 	await this.sendMessage(roomId, `ERROR: You need to specify an index to unlink`);
-				// 	return;
-				// }
-				// const puppetId = Number(param.trim());
-				// if (isNaN(puppetId)) {
-				// 	await this.sendMessage(roomId, `ERROR: The index must be a number`);
-				// 	return;
-				// }
-				// const data = await this.provisioner.get(puppetId);
-				// if (!data || data.puppetMxid !== sender) {
-				// 	await this.sendMessage(roomId, `ERROR: You must own the index`);
-				// 	return;
-				// }
-				// await this.provisioner.delete(sender, puppetId);
-				// await this.sendMessage(roomId, `Removed link with ID ${puppetId}`);
 				break;
 			}
 			default: {
@@ -847,6 +831,33 @@ Usage: \`fixmute <room resolvable>\``,
 			help: `Re-send bridge info state events to all rooms.`,
 			withPid: false,
 			inRoom: false,
+		});
+		this.registerCommand("createConversation", {
+			fn: async (sender: string, param: string, sendMessage: SendMessageFn, roomId?: string) => {
+				if (!roomId) {
+					return;
+				}
+				const room = await this.bridge.roomStore.getByMxid(roomId);
+				log.verbose("createConversation room", room);
+				if (room) {
+					return;
+				}
+				const matrixRoom  = await this.bridge.botIntent.underlyingClient.getRoomStateEvent(roomId, 'm.room.name', '')
+				log.verbose("createConversation matrixRoom", matrixRoom);
+
+				// const descs = await this.provisioner.getDescMxid(sender);
+				// if (descs.length === 0) {
+				// 	await sendMessage("Nothing linked yet!");
+				// 	return;
+				// }
+				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name);
+				await sendMessage(`createConversation`);
+			},
+			help: `create conversation.
+
+Usage: \`createConversation <puppetId>\``, 
+			withPid: false,
+			inRoom: true,
 		});
 	}
 
