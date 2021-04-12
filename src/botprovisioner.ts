@@ -844,13 +844,15 @@ Usage: \`fixmute <room resolvable>\``,
 				}
 				const matrixRoom  = await this.bridge.botIntent.underlyingClient.getRoomStateEvent(roomId, 'm.room.name', '')
 				log.verbose("createConversation matrixRoom", matrixRoom);
+				log.verbose("createConversation param", param);
 
 				// const descs = await this.provisioner.getDescMxid(sender);
 				// if (descs.length === 0) {
 				// 	await sendMessage("Nothing linked yet!");
 				// 	return;
 				// }
-				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name);
+				const puppetId = Number(param.trim());
+				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name, puppetId);
 				await sendMessage(`createConversation`);
 			},
 			help: `create conversation.

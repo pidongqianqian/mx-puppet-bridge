@@ -589,6 +589,11 @@ export class MatrixEventHandler {
 		// as we only check for existance, no need to go via the namespaceHandler --> a bit quicker
 		const roomPartsExist = await this.bridge.roomSync.getPartsFromMxid(roomId);
 		if (roomPartsExist) {
+			// TODO invite slack members to slack conversation
+			const intent = this.bridge.AS.getIntentForUserId(userId);
+			await intent.joinRoom(roomId);
+			this.bridge.emit('inviteUser', roomId, userId, inviteId);
+			
 			log.verbose("Room already exists, so double-puppet user probably auto-invited, ignoring...");
 			return; // we are an existing room, meaning a double-puppeted user probably auto-invited. Do nothing
 		}
