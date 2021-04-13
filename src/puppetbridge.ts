@@ -18,7 +18,7 @@ import {
 	Intent,
 	MatrixClient,
 	SimpleRetryJoinStrategy,
-	LogService,
+	LogService, MatrixAuth,
 } from "@sorunome/matrix-bot-sdk";
 import * as uuid from "uuid/v4";
 import * as yaml from "js-yaml";
@@ -58,6 +58,7 @@ import {
 	ListRoomsHook, ListGroupsHook, IRemoteUser, IRemoteRoom, IRemoteGroup, IPuppetData, GetUserIdsInRoomHook,
 	UserExistsHook, RoomExistsHook, GroupExistsHook, ResolveRoomIdHook, IEventInfo, MatrixPresence,
 } from "./interfaces";
+import {createHmac} from "crypto";
 
 const log = new Log("PuppetBridge");
 
@@ -129,6 +130,7 @@ export class PuppetBridge extends EventEmitter {
 	public reactionHandler: ReactionHandler;
 	public namespaceHandler: NamespaceHandler;
 	public metrics: BridgeMetrics;
+	public matrixClients: {[userMxid: string]: MatrixClient};
 	private appservice: Appservice;
 	private mxcLookupLock: Lock<string>;
 	private matrixEventHandler: MatrixEventHandler;
@@ -159,6 +161,7 @@ export class PuppetBridge extends EventEmitter {
 		}
 		this.hooks = {};
 		this.connectionMetricStatus = {};
+		this.matrixClients = {};
 		this.delayedFunction = new DelayedFunction();
 		this.mxcLookupLock = new Lock(MXC_LOOKUP_LOCK_TIMEOUT);
 		this.metrics = new BridgeMetrics();
@@ -297,6 +300,23 @@ export class PuppetBridge extends EventEmitter {
 			warn: (mod: string, args: any[]) => logFunc("warn", mod, args),
 		});
 		// tslint:enable no-any
+	}
+
+	public async checkIfLoginWithSecret(userMxid: string) {
+		const sharedSecret = this.config.bridge.loginSharedSecretMap[this.config.bridge.domain];
+		if (!sharedSecret) {
+			log.verbose("checkIfLoginWithSecret sharedSecret: ", sharedSecret);
+			// Shared secret login not enabled for this homeserver.
+			return null;
+		}
+		const hmac = createHmac("sha512", sharedSecret);
+		const password = hmac.update(Buffer.from(userMxid, "utf-8")).digest("hex");
+		const homeserverUrl = await this.provisioner.getHsUrl(userMxid);
+		const auth = new MatrixAuth(homeserverUrl);
+		const client = await auth.passwordLogin(userMxid, password, this.protocol.displayname + " Puppet Bridge");
+		if (client) {
+			this.matrixClients[userMxid] = client;
+		}
 	}
 
 	/**
@@ -438,10 +458,12 @@ export class PuppetBridge extends EventEmitter {
 		this.metrics.puppet.set({protocol: this.protocol.id}, puppets.length);
 		for (const p of puppets) {
 			this.emit("puppetNew", p.puppetId, p.data);
+			await this.checkIfLoginWithSecret(p.puppetMxid);
 		}
 		if (this.protocol.features.presence && this.config.presence.enabled) {
 			await this.presenceHandler.start();
 		}
+		
 	}
 
 	public setCreateUserHook(hook: CreateUserHook) {

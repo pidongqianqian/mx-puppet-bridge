@@ -832,7 +832,7 @@ Usage: \`fixmute <room resolvable>\``,
 			withPid: false,
 			inRoom: false,
 		});
-		this.registerCommand("createConversation", {
+		this.registerCommand("create", {
 			fn: async (sender: string, param: string, sendMessage: SendMessageFn, roomId?: string) => {
 				if (!roomId) {
 					return;
@@ -846,18 +846,18 @@ Usage: \`fixmute <room resolvable>\``,
 				log.verbose("createConversation matrixRoom", matrixRoom);
 				log.verbose("createConversation param", param);
 
-				// const descs = await this.provisioner.getDescMxid(sender);
-				// if (descs.length === 0) {
-				// 	await sendMessage("Nothing linked yet!");
-				// 	return;
-				// }
+				const descs = await this.provisioner.getDescMxid(sender);
+				if (descs.length === 0) {
+					await sendMessage("Nothing linked yet!");
+					return;
+				}
 				const puppetId = Number(param.trim());
 				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name, puppetId);
 				await sendMessage(`createConversation`);
 			},
 			help: `create conversation.
 
-Usage: \`createConversation <puppetId>\``, 
+Usage: \`create <puppetId>\``, 
 			withPid: false,
 			inRoom: true,
 		});

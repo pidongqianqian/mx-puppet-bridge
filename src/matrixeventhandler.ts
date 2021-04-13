@@ -301,10 +301,12 @@ export class MatrixEventHandler {
 
 	private async handleLeaveEvent(roomId: string, event: MembershipEvent) {
 		const userId = event.membershipFor;
-		log.info(`Got leave event from ${userId} in ${roomId}`);
+		const sender = event.sender;
+		log.info(`Got leave event from ${userId} in ${roomId} send by ${sender}`);
 		if (this.bridge.AS.isNamespacedUser(userId)) {
 			log.verbose("Is a ghost, removing from room cache...");
 			await this.bridge.puppetStore.leaveGhostFromRoom(userId, roomId);
+			this.bridge.emit('kickUser', roomId, userId, sender);
 			return;
 		}
 	}
@@ -622,7 +624,7 @@ export class MatrixEventHandler {
 		// fetch new room id
 		const newRoomId = await this.bridge.hooks.getDmRoomId(parts);
 		if (!newRoomId) {
-			log.verbose("No DM room for this user found, rejecting invite...");
+			log.verbose("No DM(slack im) room for this user found, rejecting invite...");
 			await intent.leaveRoom(roomId);
 			return;
 		}
@@ -631,12 +633,28 @@ export class MatrixEventHandler {
 			puppetId: parts.puppetId,
 			roomId: newRoomId,
 		});
-		if (roomExists) {
-			log.verbose("DM room with this user already exists, rejecting invite...");
-			await intent.leaveRoom(roomId);
+		
+		const members = await this.bridge.botIntent.underlyingClient.getRoomMembers(roomId);
+		if (members.length > 1) {
+			// matrix group invite
+			await intent.joinRoom(roomId);
 			return;
+		} else {
+			if (roomExists) {
+				log.verbose("DM room with this user already exists, rejecting invite...", roomExists);
+				await intent.leaveRoom(roomId);
+				// If a slack account (user under a certain workspace) is logged in 
+				// by two matrix users of the matrix homeserver, then after all channels 
+				// and im of the slack account are synchronized into a matrix room, 
+				// both matrix users need to be in the same matrix room
+				// await intent.inviteUser(inviteId, roomExists.mxid);
+				return;
+			}
 		}
-		// check if it is a direct room
+		
+		// check if it is a direct(slack im) room
+		// This check only checks whether the corresponding slack room is "im"(direct), NOT whethenpmr the current matrix room is direct,
+		// so if roomData.isDirect === true, which means slack room type is "im".
 		const roomData = await this.bridge.hooks.createRoom({
 			puppetId: parts.puppetId,
 			roomId: newRoomId,
@@ -653,7 +671,7 @@ export class MatrixEventHandler {
 		await intent.joinRoom(roomId);
 		await this.bridge.userSync.getClient(parts); // create user, if it doesn't exist
 		this.bridge.metrics.room?.inc({ type: roomData.isDirect ? "dm" : "group", protocol: this.bridge.protocol.id });
-		this.bridge.emit('afterCreateDM', roomId, inviteId, newRoomId)
+		this.bridge.emit('afterCreateDM', roomId, inviteId, newRoomId);
 	}
 
 	// tslint:disable-next-line no-any
