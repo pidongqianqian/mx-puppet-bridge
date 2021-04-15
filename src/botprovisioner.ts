@@ -551,17 +551,17 @@ Usage: \`listgroups\``,
 						if (r.category) {
 							replyPart = `\n### ${r.name}:\n\n`;
 						} else {
-							const {mxid, alias} = await this.bridge.getMxidAndAlias({
+							const {mxid, alias} = await this.bridge.getMxidAndAliasNew({
 								puppetId: d.puppetId,
 								roomId: r.id!,
 							});
 							log.verbose("roomInfo.mxid: ", mxid);
 							log.verbose("roomInfo.alias: ", alias);
-							if (alias) {
+							if (mxid || alias) {
 								const id = mxid ? mxid : alias;
 								const parts = await this.bridge.roomSync.getPartsFromMxid(id);
 								if (!parts) {
-									return;
+									continue;
 								}
 								this.bridge.bridgeRoom(parts).then(create => {
 									log.verbose("bridgeRoom create: ", create);

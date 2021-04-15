@@ -73,6 +73,7 @@ export class Provisioner {
 		const auth = new MatrixAuth(homeserverUrl);
 		try {
 			const client = await auth.passwordLogin(mxid, password, this.bridge.protocol.displayname + " Puppet Bridge");
+			this.bridge.matrixClients[mxid] = client;
 			return client.accessToken;
 		} catch (err) {
 			// Shared secret is probably misconfigured, so make a warning log.

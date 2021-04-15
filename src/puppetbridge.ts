@@ -716,6 +716,31 @@ export class PuppetBridge extends EventEmitter {
 		};
 	}
 
+	public async getMxidAndAliasNew(room: IRemoteRoom): Promise<any> {
+		const roomInfo = await this.roomSync.maybeGet(room);
+		let alias = '';
+		if (roomInfo) {
+			const client = (await this.roomSync.getRoomOp(roomInfo.mxid)) || this.botIntent.underlyingClient;
+			if (client) {
+				log.verbose("getDbPuppetId 8: ");
+				try {
+					const al = (await client.getRoomStateEvent(
+						roomInfo.mxid, "m.room.canonical_alias", "",
+					)).alias;
+					if (typeof al === "string" && al[0] === "#") {
+						alias = al;
+					}
+				} catch (err) { } // do nothing
+			}
+		}
+		const suffix = await this.namespaceHandler.getSuffix(room.puppetId, room.roomId);
+		log.verbose("getDbPuppetId 10: ", roomInfo);
+		return {
+			alias: alias ? alias : this.appservice.getAliasForSuffix(suffix),
+			mxid: roomInfo?.mxid
+		};
+	}
+
 	/**
 	 * Get the URL from an MXC uri
 	 */
