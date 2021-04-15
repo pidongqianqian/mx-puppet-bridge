@@ -851,8 +851,29 @@ Usage: \`fixmute <room resolvable>\``,
 					await sendMessage("Nothing linked yet!");
 					return;
 				}
-				const puppetId = Number(param.trim());
-				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name, puppetId);
+				let puppetId = 0;
+				let isGroup = false;
+				if (param.indexOf('-')) {
+					const paramArr = param.split('-');
+					if (paramArr[0] === 'g') {
+						isGroup = true;
+					} else if (paramArr[0] === 'c') {
+						isGroup = false; // which means it's channel
+					} else {
+						await sendMessage(`command format error: should be"create c-<puppetId>" or create g-<puppetId>`);
+						return;
+					}
+					if (paramArr[1]) {
+						puppetId = Number(paramArr[1].trim());
+					}  else {
+						await sendMessage(`command format error: should be"create c-<puppetId>" or create g-<puppetId>`);
+						return;
+					}
+				} else {
+					puppetId = Number(param.trim());
+				}
+				
+				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name, puppetId, isGroup);
 				await sendMessage(`createConversation`);
 			},
 			help: `create conversation.
