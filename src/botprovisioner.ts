@@ -112,6 +112,12 @@ export class BotProvisioner {
 					puppetId = pid;
 					parseParam = p;
 				}
+				
+				const results = await this.bridge.puppetStore.getForMxid(sender);
+				if (results && results.length > 0) {
+					await this.sendMessage(roomId, "ERROR: You have a link already!");
+					break;
+				}
 				if (!parseParam) {
 					parseParam = "";
 				}
@@ -155,6 +161,11 @@ export class BotProvisioner {
 					// we need to create a new link
 					puppetId = await this.provisioner.new(sender, data, retData.userId);
 					await this.sendMessage(roomId, `Created new link with ID ${puppetId}`);
+					// setTimeout(async () => {
+					// 	await this.pingLinkStatus(sender, param, async (s: string) => {
+					// 		await this.sendMessage(roomId, s);
+					// 	});
+					// }, 2000);
 				} else {
 					// we need to update an existing link
 					await this.provisioner.update(sender, puppetId, data, retData.userId);
@@ -195,6 +206,31 @@ export class BotProvisioner {
 				}
 			}
 		}
+	}
+	
+	private async pingLinkStatus(sender: string, param: string, sendMessage: SendMessageFn) {
+		const descs = await this.provisioner.getDescMxid(sender);
+		if (descs.length === 0) {
+			await sendMessage("Nothing linked yet!");
+			return;
+		}
+		let sendStr = "Successfully logged in as @\n";
+		for (const d of descs) {
+			let sendStrPart = ` - ${d.puppetId}: ${d.desc}`;
+			if (d.type !== "puppet") {
+				sendStrPart += ` (type: ${d.type})`;
+			}
+			if (d.isPublic) {
+				sendStrPart += " **public!**";
+			}
+			sendStrPart += "\n";
+			if (sendStr.length + sendStrPart.length > MAX_MSG_SIZE) {
+				await sendMessage(sendStr);
+				sendStr = "";
+			}
+			sendStr += sendStrPart;
+		}
+		await sendMessage(sendStr);
 	}
 	
 	private async unlinkTeam(roomId, sender, param) {
@@ -366,6 +402,15 @@ Usage: \`help\`, \`help <command>\``,
 Usage: \`list\``,
 			withPid: false,
 		});
+		this.registerCommand("ping", {
+			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
+				await this.pingLinkStatus(sender, param, sendMessage);
+			},
+			help: `List all set links along with their information.
+
+Usage: \`ping\``,
+			withPid: false,
+		});
 		this.registerCommand("setmatrixtoken", {
 			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
 				if (!param || !param.trim()) {
@@ -527,7 +572,7 @@ Usage: \`listrooms\``,
 Usage: \`listgroups\``,
 			withPid: false,
 		});
-		this.registerCommand("syncChannels", {
+		this.registerCommand("sync", {
 			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
 				if (!this.bridge.hooks.listRooms) {
 					await sendMessage("Feature not implemented!");
@@ -545,7 +590,6 @@ Usage: \`listgroups\``,
 					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
 					log.verbose("rooms", rooms);
 					
-					// reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
 					for (const r of rooms) {
 						let replyPart = "";
 						if (r.category) {
@@ -574,22 +618,17 @@ Usage: \`listgroups\``,
 								});
 							}
 						}
-					// 	if (reply.length + replyPart.length > MAX_MSG_SIZE) {
-					// 		await sendMessage(reply);
-					// 		reply = "";
-					// 	}
-					// 	reply += replyPart;
 					}
 				}
 				await sendMessage("syncChannels");
 			},
 			help: `Synchronize and list all groups that are linked currently, from all links.
 
-Usage: \`syncChannels\``,
+Usage: \`sync\``,
 			withPid: false,
 		});
 
-		this.registerCommand("unSyncChannels", {
+		this.registerCommand("unSync", {
 			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
 				if (!this.bridge.hooks.listRooms) {
 					await sendMessage("Feature not implemented!");
@@ -600,7 +639,6 @@ Usage: \`syncChannels\``,
 					await sendMessage("Nothing linked yet!");
 					return;
 				}
-				let reply = "";
 				log.verbose("descs", descs);
 				for (const d of descs) {
 					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
@@ -616,36 +654,47 @@ Usage: \`syncChannels\``,
 						this.bridge.emit("afterUnlink", sender, id);
 					}
 					log.verbose("rooms", rooms);
-					// reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
-					// for (const r of rooms) {
-					// 	let replyPart = "";
-					// 	if (r.category) {
-					// 		replyPart = `\n### ${r.name}:\n\n`;
-					// 	} else {
-					// 		const roomInfo = await this.bridge.roomSync.maybeGet({
-					// 			puppetId: d.puppetId,
-					// 			roomId: r.id!,
-					// 		});
-					// 		// TODO 检查user_team_channel是否有相关记录, 有则踢出用户并删除记录
-					// 		const client = this.bridge.botIntent.underlyingClient;
-					// 		//const client = await this.bridge.roomSync.getRoomOp(roomId);
-					// 		if (roomInfo?.mxid === "!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host") {
-					// 			await client.inviteUser(sender, '!rBqPPgaMHqmXmFxBjZ:oliver.matrix.host');
-					// 		}
-					// 	}
-					// 	if (reply.length + replyPart.length > MAX_MSG_SIZE) {
-					// 		await sendMessage(reply);
-					// 		reply = "";
-					// 	}
-					// 	reply += replyPart;
-					// }
 				}
 				await this.unlinkTeam('', sender, param);
-				await sendMessage("unSyncChannels");
+				await sendMessage("unSync");
 			},
 			help: `Synchronize and list all groups that are linked currently, from all links.
 
-Usage: \`unSyncChannels\``,
+Usage: \`unSync\``,
+			withPid: false,
+		});
+
+		this.registerCommand("logout", {
+			fn: async (sender: string, param: string, sendMessage: SendMessageFn) => {
+				if (!this.bridge.hooks.listRooms) {
+					await sendMessage("Feature not implemented!");
+					return;
+				}
+				const descs = await this.provisioner.getDescMxid(sender);
+				if (descs.length === 0) {
+					await sendMessage("Nothing linked yet!");
+					return;
+				}
+				for (const d of descs) {
+					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
+					const teamIds = new Set<string>();
+					for (const r of rooms) {
+						if (r.id!) {
+							const teamIdAndChannelId = r.id!.split('-');
+							teamIds.add(teamIdAndChannelId[0])
+						}
+					}
+					log.verbose("descs teamIds", teamIds);
+					for (const id of teamIds) {
+						this.bridge.emit("afterUnlink", sender, id);
+					}
+					await this.unlinkTeam('', sender, `${d.puppetId}`);
+				}
+				await sendMessage("Logged out successfully");
+			},
+			help: `Synchronize and list all groups that are linked currently, from all links.
+
+Usage: \`logout <puppetId>\``,
 			withPid: false,
 		});
 	
@@ -840,6 +889,7 @@ Usage: \`fixmute <room resolvable>\``,
 				const room = await this.bridge.roomStore.getByMxid(roomId);
 				log.verbose("createConversation room", room);
 				if (room) {
+					await sendMessage("This room has been bridged!");
 					return;
 				}
 				const matrixRoom  = await this.bridge.botIntent.underlyingClient.getRoomStateEvent(roomId, 'm.room.name', '')
