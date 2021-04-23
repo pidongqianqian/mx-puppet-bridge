@@ -330,6 +330,8 @@ export class BotProvisioner {
 			sendStr += `${puppetId}: ${desc.desc}: `;
 		}
 		sendStr += msg;
+		globalVar.currentUserMxid = mxid;
+		globalVar.currentRoomMxid = roomMxid;
 		await this.sendMessage(roomMxid, sendStr, client);
 	}
 
