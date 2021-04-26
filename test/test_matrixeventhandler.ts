@@ -16,7 +16,7 @@ import { MatrixEventHandler } from "../src/matrixeventhandler";
 import {
 	RoomEvent, RoomEventContent, MembershipEvent, RedactionEvent, MessageEventContent, MessageEvent,
 	FileMessageEventContent, TextualMessageEventContent,
-} from "@sorunome/matrix-bot-sdk";
+} from "@pidong/matrix-bot-sdk";
 import * as prometheus from "prom-client";
 import { MessageDeduplicator } from "../src/structures/messagededuplicator";
 

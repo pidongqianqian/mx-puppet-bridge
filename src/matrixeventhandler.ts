@@ -16,7 +16,7 @@ import { PuppetBridge } from "./puppetbridge";
 import {
 	MembershipEvent, RedactionEvent, RoomEvent, MessageEvent, FileMessageEventContent, TextualMessageEventContent,
 	MembershipEventContent, RoomEventContent, MessageEventContent, MatrixClient,
-} from "@sorunome/matrix-bot-sdk";
+} from "@pidong/matrix-bot-sdk";
 import {
 	IFileEvent, IMessageEvent, IRemoteRoom, ISendingUser, IRemoteUser, IReplyEvent, IEventInfo, IPresenceEvent,
 } from "./interfaces";

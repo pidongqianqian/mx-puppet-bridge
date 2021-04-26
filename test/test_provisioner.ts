@@ -174,7 +174,7 @@ function getProvisioner() {
 		return { accessToken: "token" };
 	};
 	const Provisioner = proxyquire.load("../src/provisioner", {
-		"@sorunome/matrix-bot-sdk": { MatrixAuth },
+		"@pidong/matrix-bot-sdk": { MatrixAuth },
 		"./util": { Util: {
 			DownloadFile: async (url) => {
 				if (url.startsWith("https://example.org")) {

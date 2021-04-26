@@ -19,7 +19,7 @@ import { Log } from "./log";
 import { TimedCache } from "./structures/timedcache";
 import {globalVar} from "./global"
 import * as MarkdownIt from "markdown-it";
-import { MatrixClient, MessageEvent, TextualMessageEventContent } from "@sorunome/matrix-bot-sdk";
+import { MatrixClient, MessageEvent, TextualMessageEventContent } from "@pidong/matrix-bot-sdk";
 
 const md = new MarkdownIt();
 

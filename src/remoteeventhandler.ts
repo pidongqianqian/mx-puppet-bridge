@@ -19,7 +19,7 @@ import { IRemoteUser, IReceiveParams, IMessageEvent, MatrixPresence } from "./in
 import {
 	TextualMessageEventContent, FileMessageEventContent, FileWithThumbnailInfo, MatrixClient, DimensionalFileInfo,
 	VideoFileInfo, TimedFileInfo, MessageEvent, MessageEventContent,
-} from "@sorunome/matrix-bot-sdk";
+} from "@pidong/matrix-bot-sdk";
 import * as escapeHtml from "escape-html";
 import * as unescapeHtml from "unescape";
 import * as prometheus from "prom-client";

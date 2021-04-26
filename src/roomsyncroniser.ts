@@ -17,7 +17,7 @@ import { Util } from "./util";
 import { Log } from "./log";
 import { DbRoomStore } from "./db/roomstore";
 import { IRoomStoreEntry } from "./db/interfaces";
-import { MatrixClient } from "@sorunome/matrix-bot-sdk";
+import { MatrixClient } from "@pidong/matrix-bot-sdk";
 import { Lock } from "./structures/lock";
 import { Buffer } from "buffer";
 import {globalVar} from "./global"

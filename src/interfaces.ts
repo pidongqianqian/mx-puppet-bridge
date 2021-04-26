@@ -14,7 +14,7 @@ limitations under the License.
 import { IStringFormatterVars } from "./structures/stringformatter";
 import {
 	MessageEvent, TextualMessageEventContent, FileMessageEventContent,
-} from "@sorunome/matrix-bot-sdk";
+} from "@pidong/matrix-bot-sdk";
 
 export type MatrixPresence = "offline" | "online" | "unavailable";
 

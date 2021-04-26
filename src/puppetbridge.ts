@@ -19,7 +19,7 @@ import {
 	MatrixClient,
 	SimpleRetryJoinStrategy,
 	LogService, MatrixAuth,
-} from "@sorunome/matrix-bot-sdk";
+} from "@pidong/matrix-bot-sdk";
 import * as uuid from "uuid/v4";
 import * as yaml from "js-yaml";
 import * as prometheus from "prom-client";
