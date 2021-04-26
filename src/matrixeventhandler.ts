@@ -634,8 +634,10 @@ export class MatrixEventHandler {
 			roomId: newRoomId,
 		});
 		
-		const members = await this.bridge.botIntent.underlyingClient.getRoomMembers(roomId);
-		if (members.length > 1) {
+		const members = await this.bridge.botIntent.underlyingClient.getRoomMembers(roomId).catch(err => {
+			log.verbose("get room info err: ", err.body);
+		});
+		if (members && members.length > 1) {
 			// matrix group invite
 			await intent.joinRoom(roomId);
 			return;
@@ -647,7 +649,7 @@ export class MatrixEventHandler {
 				// by two matrix users of the matrix homeserver, then after all channels 
 				// and im of the slack account are synchronized into a matrix room, 
 				// both matrix users need to be in the same matrix room
-				// await intent.inviteUser(inviteId, roomExists.mxid);
+				await intent.inviteUser(inviteId, roomExists.mxid);
 				return;
 			}
 		}
