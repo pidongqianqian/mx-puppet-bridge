@@ -360,6 +360,13 @@ export class MatrixEventHandler {
 		if (this.bridge.AS.isNamespacedUser(event.sender)) {
 			return; // we don't handle things from our own namespace
 		}
+		const statusRoom = await this.bridge.puppetStore.getMxidInfo(event.sender).catch(err=> {
+			log.verbose("handleMessageEvent statusRoom err: ", err);
+		});
+		if (statusRoom && statusRoom.statusRoom === roomId) {
+			await this.bridge.botProvisioner.processEvent(roomId, event);
+			return;
+		}
 		const room = await this.getRoomParts(roomId, event.sender);
 		if (!room) {
 			// this isn't a room we handle....so let's do provisioning!
