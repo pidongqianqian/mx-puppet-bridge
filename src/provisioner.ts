@@ -198,6 +198,7 @@ export class Provisioner {
 		const puppetId = await this.puppetStore.new(puppetMxid, data, userId, isGlobal);
 		log.info(`Created new puppet with id ${puppetId}`);
 		this.bridge.emit("puppetNew", puppetId, data);
+		await this.bridge.checkIfLoginWithSecret(puppetMxid);
 		const WAIT_CONNECT_TIMEOUT = 10000;
 		setTimeout(async () => {
 			await this.adjustMuteListRooms(puppetId, puppetMxid);
@@ -227,7 +228,7 @@ export class Provisioner {
 		if (!data || data.puppetMxid !== puppetMxid) {
 			return;
 		}
-		await this.bridge.roomSync.deleteForPuppet(puppetId);
+		// await this.bridge.roomSync.deleteForPuppet(puppetId);
 		await this.puppetStore.delete(puppetId);
 		await this.adjustMuteEverywhere(puppetMxid);
 		this.bridge.emit("puppetDelete", puppetId);

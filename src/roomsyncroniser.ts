@@ -952,7 +952,7 @@ export class RoomSyncroniser {
 					const possibleAliases = new Set<string>();
 					// let's first probe the canonical alias room state
 					try {
-						const canonicalAlias = await await opClient.getRoomStateEvent(entry.mxid, "m.room.canonical_alias", "");
+						const canonicalAlias = await opClient.getRoomStateEvent(entry.mxid, "m.room.canonical_alias", "");
 						if (canonicalAlias.alias) {
 							possibleAliases.add(canonicalAlias.alias);
 						}
