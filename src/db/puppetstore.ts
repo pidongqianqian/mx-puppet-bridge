@@ -220,6 +220,17 @@ export class DbPuppetStore {
 		return mxid;
 	}
 
+	public async getByUserId(userId: string) {
+		const stopTimer = this.db.latency.startTimer(this.labels("select_mxid"));
+		const result = await this.db.Get("SELECT puppet_mxid FROM puppet_store WHERE user_id=$id", { id: userId });
+		if (!result) {
+			throw new Error("Puppet not found");
+		}
+		const mxid = result.puppet_mxid as string;
+		stopTimer();
+		return mxid;
+	}
+
 	public async setUserId(puppetId: number, userId: string) {
 		const stopTimer = this.db.latency.startTimer(this.labels("update_uid"));
 		await this.db.Run("UPDATE puppet_store SET user_id=$uid WHERE puppet_id=$pid", {

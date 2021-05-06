@@ -23,6 +23,7 @@ import {
 import * as escapeHtml from "escape-html";
 import * as prometheus from "prom-client";
 import { IPuppet } from "./db/puppetstore";
+import {globalVar} from "./global";
 
 const log = new Log("MatrixEventHandler");
 
@@ -308,6 +309,14 @@ export class MatrixEventHandler {
 			await this.bridge.puppetStore.leaveGhostFromRoom(userId, roomId);
 			this.bridge.emit('kickUser', roomId, userId, sender);
 			return;
+		} else {
+			log.info(`Got leave event from self`, globalVar.currentUserMxid);
+			if(userId === sender && sender === globalVar.currentUserMxid) {
+				const result = await this.bridge.roomStore.getByMxid(roomId);
+				if (result && result.roomId) {
+					this.bridge.emit('leaveRoom', result.roomId.split('-')[0], result.roomId.split('-')[1], userId);
+				}
+			}	
 		}
 	}
 
