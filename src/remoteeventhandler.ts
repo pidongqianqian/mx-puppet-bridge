@@ -25,6 +25,7 @@ import * as unescapeHtml from "unescape";
 import * as prometheus from "prom-client";
 import { encode as blurhashEncode } from "blurhash";
 import * as Canvas from "canvas";
+import {globalVar} from "./global";
 
 const log = new Log("RemoteEventHandler");
 
@@ -592,6 +593,10 @@ export class RemoteEventHandler {
 			if (created) {
 				log.verbose("Maybe applying room membership overrides");
 				await this.bridge.userSync.setRoomOverride(params.user, params.room.roomId, null, client);
+			}
+		} else {
+			if (userId === globalVar.currentUserMxid) {
+				await this.bridge.botIntent.underlyingClient.inviteUser(userId, mxid);
 			}
 		}
 
