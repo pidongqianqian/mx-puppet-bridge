@@ -596,7 +596,12 @@ export class RemoteEventHandler {
 			}
 		} else {
 			if (userId === globalVar.currentUserMxid) {
-				await this.bridge.botIntent.underlyingClient.inviteUser(userId, mxid);
+				if (params.isInRoom && typeof params.isInRoom === 'function') {
+					const inRoom = await params.isInRoom(userId, mxid);
+					if (!inRoom) {
+						await this.bridge.botIntent.underlyingClient.inviteUser(userId, mxid).catch(err => {});
+					}
+				}
 			}
 		}
 

@@ -119,6 +119,7 @@ export interface IReceiveParams {
 	room: IRemoteRoom;
 	eventId?: string;
 	externalUrl?: string;
+	isInRoom?: (userId: string, roomMxid: string) => Promise<boolean>;
 }
 
 export interface IMessageEvent {
