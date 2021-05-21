@@ -283,6 +283,9 @@ export class RoomSyncroniser {
 				log.verbose("Creating room with create parameters", createParams);
 				try {
 					mxid = await client!.createRoom(createParams);
+					if (!createParams.is_direct) {
+						await client!.setUserPowerLevel(globalVar.currentUserMxid, mxid, 50);
+					}
 				} catch (err) {
 					if (err.body.errcode === "M_ROOM_IN_USE") {
 						const ret = await this.attemptRoomRestore(this.bridge.AS.getAliasForSuffix(suffix));

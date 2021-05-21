@@ -205,6 +205,25 @@ export class MatrixEventHandler {
 			await this.handleMessageEvent(roomId, evt);
 			return;
 		}
+		
+		if (event.type === "m.room.name") {
+			log.verbose("m.room.name", event);
+			await this.handleRoomMetaUpdateEvent(roomId, event);
+			return;
+		}
+	}
+	
+	private async handleRoomMetaUpdateEvent(roomId: string, event: RoomEvent<RoomEventContent>) {
+		const sender = event.sender;
+		log.info(`Got room meta update event from ${sender} in ${roomId} send by ${sender}`);
+		if (!this.bridge.AS.isNamespacedUser(sender)) {
+			if(sender === globalVar.currentUserMxid) {
+				const result = await this.bridge.roomStore.getByMxid(roomId);
+				if (result && result.roomId) {
+					this.bridge.emit('roomMetaUpdate', result.roomId.split('-')[0], result.roomId.split('-')[1], sender, event.content);
+				}
+			}
+		}
 	}
 
 	private async handleJoinEvent(roomId: string, event: MembershipEvent) {
