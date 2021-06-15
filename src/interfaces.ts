@@ -176,6 +176,7 @@ export interface IRetList {
 	name: string;
 	id?: string;
 	category?: boolean;
+	type?: string,
 }
 
 interface IProtocolInformationNamePatterns {

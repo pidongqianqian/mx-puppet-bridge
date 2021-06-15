@@ -205,14 +205,14 @@ export class MatrixEventHandler {
 			await this.handleMessageEvent(roomId, evt);
 			return;
 		}
-		
+
 		if (event.type === "m.room.name") {
 			log.verbose("m.room.name", event);
 			await this.handleRoomMetaUpdateEvent(roomId, event);
 			return;
 		}
 	}
-	
+
 	private async handleRoomMetaUpdateEvent(roomId: string, event: RoomEvent<RoomEventContent>) {
 		const sender = event.sender;
 		log.info(`Got room meta update event from ${sender} in ${roomId} send by ${sender}`);
@@ -335,7 +335,7 @@ export class MatrixEventHandler {
 				if (result && result.roomId) {
 					this.bridge.emit('leaveRoom', result.roomId.split('-')[0], result.roomId.split('-')[1], userId);
 				}
-			}	
+			}
 		}
 	}
 
@@ -630,7 +630,7 @@ export class MatrixEventHandler {
 			const intent = this.bridge.AS.getIntentForUserId(userId);
 			await intent.joinRoom(roomId);
 			this.bridge.emit('inviteUser', roomId, userId, inviteId);
-			
+
 			log.verbose("Room already exists, so double-puppet user probably auto-invited, ignoring...");
 			return; // we are an existing room, meaning a double-puppeted user probably auto-invited. Do nothing
 		}
@@ -668,7 +668,7 @@ export class MatrixEventHandler {
 			puppetId: parts.puppetId,
 			roomId: newRoomId,
 		});
-		
+
 		const members = await this.bridge.botIntent.underlyingClient.getRoomMembers(roomId).catch(err => {
 			log.verbose("get room info err: ", err.body);
 		});
@@ -680,15 +680,15 @@ export class MatrixEventHandler {
 			if (roomExists) {
 				log.verbose("DM room with this user already exists, rejecting invite...", roomExists);
 				await intent.leaveRoom(roomId);
-				// If a slack account (user under a certain workspace) is logged in 
-				// by two matrix users of the matrix homeserver, then after all channels 
-				// and im of the slack account are synchronized into a matrix room, 
+				// If a slack account (user under a certain workspace) is logged in
+				// by two matrix users of the matrix homeserver, then after all channels
+				// and im of the slack account are synchronized into a matrix room,
 				// both matrix users need to be in the same matrix room
 				await intent.inviteUser(inviteId, roomExists.mxid);
 				return;
 			}
 		}
-		
+
 		// check if it is a direct(slack im) room
 		// This check only checks whether the corresponding slack room is "im"(direct), NOT whethenpmr the current matrix room is direct,
 		// so if roomData.isDirect === true, which means slack room type is "im".
@@ -709,6 +709,7 @@ export class MatrixEventHandler {
 		await this.bridge.userSync.getClient(parts); // create user, if it doesn't exist
 		this.bridge.metrics.room?.inc({ type: roomData.isDirect ? "dm" : "group", protocol: this.bridge.protocol.id });
 		this.bridge.emit('afterCreateDM', roomId, inviteId, newRoomId);
+		this.bridge.roomStore.updateInviter(roomId, userId);
 	}
 
 	// tslint:disable-next-line no-any

@@ -113,6 +113,21 @@ export class DbRoomStore {
 			"SELECT * FROM room_store WHERE mxid = $mxid", {mxid: data.mxid},
 		);
 		let query = "";
+		let params: any = {
+			mxid: data.mxid,
+				room_id: data.roomId,
+			puppet_id: data.puppetId,
+			name: data.name || null,
+			avatar_url: data.avatarUrl || null,
+			avatar_mxc: data.avatarMxc || null,
+			avatar_hash: data.avatarHash || null,
+			topic: data.topic || null,
+			group_id: data.groupId || null,
+			is_direct: Number(data.isDirect),
+			e2be: Number(data.e2be),
+			external_url: data.externalUrl || null,
+			is_used: Number(data.isUsed)
+		};
 		if (!exists) {
 			query = `INSERT INTO room_store (
 				mxid,
@@ -127,7 +142,8 @@ export class DbRoomStore {
 				is_direct,
 				e2be,
 				external_url,
-				is_used
+				is_used,
+				inviter
 			) VALUES (
 				$mxid,
 				$room_id,
@@ -141,8 +157,10 @@ export class DbRoomStore {
 				$is_direct,
 				$e2be,
 				$external_url,
-				$is_used
+				$is_used,
+				$inviter
 			)`;
+			params = {...params, inviter: data.inviter || ''};
 		} else {
 			query = `UPDATE room_store SET
 				room_id = $room_id,
@@ -159,21 +177,8 @@ export class DbRoomStore {
 				is_used = $is_used
 				WHERE mxid = $mxid`;
 		}
-		await this.db.Run(query, {
-			mxid: data.mxid,
-			room_id: data.roomId,
-			puppet_id: data.puppetId,
-			name: data.name || null,
-			avatar_url: data.avatarUrl || null,
-			avatar_mxc: data.avatarMxc || null,
-			avatar_hash: data.avatarHash || null,
-			topic: data.topic || null,
-			group_id: data.groupId || null,
-			is_direct: Number(data.isDirect),
-			e2be: Number(data.e2be),
-			external_url: data.externalUrl || null,
-			is_used: Number(data.isUsed),
-		});
+
+		await this.db.Run(query, params);
 		this.remoteCache.set(`${data.puppetId};${data.roomId}`, data);
 		this.mxidCache.set(data.mxid, data);
 		stopTimer();
@@ -190,6 +195,21 @@ export class DbRoomStore {
 		this.remoteCache.delete(`${data.puppetId};${data.roomId}`);
 		this.mxidCache.delete(data.mxid);
 		this.opCache.delete(data.mxid);
+		stopTimer();
+	}
+
+	public async updateInviter(mxid:string, inviter: string) {
+		const stopTimer = this.db.latency.startTimer(this.labels("update_inviter"));
+		await this.db.Run("UPDATE room_store SET inviter = $inviter WHERE mxid = $mxid", {
+			inviter: inviter,
+			mxid: mxid,
+		});
+		let data = await this.getByMxid(mxid);
+		if (data) {
+			data.inviter = inviter;
+			this.remoteCache.set(`${data.puppetId};${data.roomId}`, data);
+			this.mxidCache.set(data.mxid, data);
+		}
 		stopTimer();
 	}
 
@@ -273,6 +293,7 @@ export class DbRoomStore {
 		data.e2be = Boolean(Number(row.e2be));
 		data.externalUrl = (row.external_url || null) as string | null;
 		data.isUsed = Boolean(Number(row.is_used));
+		data.inviter = (row.inviter || '') as string | '';
 
 		this.remoteCache.set(`${data.puppetId};${data.roomId}`, data);
 		this.mxidCache.set(data.mxid, data);

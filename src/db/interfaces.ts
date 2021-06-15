@@ -42,6 +42,7 @@ export interface IRoomStoreEntry extends IProfileDbEntry {
 	e2be: boolean;
 	externalUrl?: string | null;
 	isUsed: boolean;
+	inviter?:string;
 }
 
 export interface IGroupStoreEntry extends IProfileDbEntry {

@@ -28,7 +28,7 @@ import { Util } from "./util";
 import { PuppetBridge } from "./puppetbridge";
 const log = new Log("Store");
 
-export const CURRENT_SCHEMA = 16;
+export const CURRENT_SCHEMA = 17;
 
 type GetSchemaClass = (version: number) => IDbSchema;
 
@@ -166,6 +166,15 @@ export class Store {
 			log.info("Created table", tablename);
 		} catch (err) {
 			throw new Error(`Error creating '${tablename}': ${err}`);
+		}
+	}
+
+	public async addColumn(statement: string, column: string, tablename: string) {
+		try {
+			await this.db.Exec(statement);
+			log.info(`added column ${column} to table`, tablename);
+		} catch (err) {
+			throw new Error(`Error adding column ${column} to table '${tablename}': ${err}`);
 		}
 	}
 

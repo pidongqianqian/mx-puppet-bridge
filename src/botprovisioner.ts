@@ -86,7 +86,7 @@ export class BotProvisioner {
 		}
 		globalVar.currentRoomMxid = senderInfo.statusRoom;
 		globalVar.currentUserMxid = sender;
-		
+
 		log.verbose("globalVar", globalVar.currentRoomMxid, globalVar.currentUserMxid)
 		// parse the argument and parameters of the message
 		const [, arg, param] = event.textBody.split(/([^ ]*)(?: (.*))?/);
@@ -112,7 +112,7 @@ export class BotProvisioner {
 					puppetId = pid;
 					parseParam = p;
 				}
-				
+
 				const results = await this.bridge.puppetStore.getForMxid(sender);
 				if (results && results.length > 0) {
 					await this.sendMessage(roomId, "ERROR: You have a link already!");
@@ -207,7 +207,7 @@ export class BotProvisioner {
 			}
 		}
 	}
-	
+
 	private async pingLinkStatus(sender: string, param: string, sendMessage: SendMessageFn) {
 		const descs = await this.provisioner.getDescMxid(sender);
 		if (descs.length === 0) {
@@ -232,7 +232,7 @@ export class BotProvisioner {
 		}
 		await sendMessage(sendStr);
 	}
-	
+
 	private async unlinkTeam(roomId, sender, param) {
 		if (!param || !param.trim()) {
 			if (roomId) {
@@ -591,7 +591,7 @@ Usage: \`listgroups\``,
 				for (const d of descs) {
 					const rooms = await this.bridge.hooks.listRooms(d.puppetId);
 					log.verbose("rooms", rooms);
-					
+
 					for (const r of rooms) {
 						let replyPart = "";
 						if (r.category) {
@@ -609,13 +609,21 @@ Usage: \`listgroups\``,
 								if (!parts) {
 									continue;
 								}
-								this.bridge.bridgeRoom(parts).then(create => {
+								this.bridge.bridgeRoom(parts).then(async create => {
 									log.verbose("bridgeRoom create: ", create);
 									log.verbose("bridgeRoom sender: ", sender);
 									// @ts-ignore
 									if (!create && mxid) {
-										const client = this.bridge.botIntent.underlyingClient;
-										client.inviteUser(sender, mxid)
+										if (r.type === 'im') {
+											const row =  await this.bridge.roomStore.getByMxid(mxid)
+											if (row && row.inviter) {
+												const intent = this.bridge.AS.getIntentForUserId(row.inviter);
+												intent.inviteUser(sender, mxid);
+											}
+										} else {
+											const client = this.bridge.botIntent.underlyingClient;
+											client.inviteUser(sender, mxid)
+										}
 									}
 								});
 							}
@@ -699,7 +707,7 @@ Usage: \`unSync\``,
 Usage: \`logout <puppetId>\``,
 			withPid: false,
 		});
-	
+
 		this.registerCommand("settype", {
 			fn: async (puppetId: number, param: string, sendMessage: SendMessageFn) => {
 				if (!PUPPET_TYPES.includes(param as PuppetType)) {
@@ -924,13 +932,13 @@ Usage: \`fixmute <room resolvable>\``,
 				} else {
 					puppetId = Number(param.trim());
 				}
-				
-				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name, puppetId, isGroup);
+
+				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name.toLowerCase(), puppetId, isGroup);
 				await sendMessage(`createConversation`);
 			},
 			help: `create conversation.
 
-Usage: \`create <puppetId>\``, 
+Usage: \`create <puppetId>\``,
 			withPid: false,
 			inRoom: true,
 		});
@@ -948,7 +956,7 @@ Usage: \`create <puppetId>\``,
 			format: "org.matrix.custom.html",
 		});
 	}
-	
+
 	public kickUser(userId: string, roomId: string, reason: string) {
 		const client = this.bridge.botIntent.underlyingClient;
 		return client.kickUser(userId, roomId, reason);
