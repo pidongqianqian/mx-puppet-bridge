@@ -221,7 +221,7 @@ export class DbPuppetStore {
 	}
 
 	public async getByUserId(userId: string) {
-		const stopTimer = this.db.latency.startTimer(this.labels("select_mxid"));
+		const stopTimer = this.db.latency.startTimer(this.labels("select_userId"));
 		const result = await this.db.Get("SELECT puppet_mxid FROM puppet_store WHERE user_id=$id", { id: userId });
 		if (!result) {
 			throw new Error("Puppet not found");
