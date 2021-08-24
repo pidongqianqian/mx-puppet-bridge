@@ -622,7 +622,10 @@ Usage: \`listgroups\``,
 											}
 										} else {
 											const client = this.bridge.botIntent.underlyingClient;
-											client.inviteUser(sender, mxid)
+											client.inviteUser(sender, mxid).then(res => {
+												client.setUserPowerLevel(sender, mxid, 90)
+											}).catch(err=>console.log(err))
+
 										}
 									}
 								});
@@ -934,7 +937,7 @@ Usage: \`fixmute <room resolvable>\``,
 				}
 
 				this.bridge.emit("createConversation", sender, roomId, matrixRoom.name.toLowerCase(), puppetId, isGroup);
-				await sendMessage(`createConversation`);
+				await sendMessage(`Successfully created`);
 			},
 			help: `create conversation.
 

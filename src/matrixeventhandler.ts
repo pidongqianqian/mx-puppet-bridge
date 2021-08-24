@@ -206,8 +206,8 @@ export class MatrixEventHandler {
 			return;
 		}
 
-		if (event.type === "m.room.name") {
-			log.verbose("m.room.name", event);
+		if (["m.room.name", "m.room.topic"].includes(event.type)) {
+			log.verbose("room meta update", event);
 			await this.handleRoomMetaUpdateEvent(roomId, event);
 			return;
 		}
@@ -220,7 +220,7 @@ export class MatrixEventHandler {
 			if(sender === globalVar.currentUserMxid) {
 				const result = await this.bridge.roomStore.getByMxid(roomId);
 				if (result && result.roomId) {
-					this.bridge.emit('roomMetaUpdate', result.roomId.split('-')[0], result.roomId.split('-')[1], sender, event.content);
+					this.bridge.emit('roomMetaUpdate', result.roomId.split('-')[0], result.roomId.split('-')[1], sender, event);
 				}
 			}
 		}
