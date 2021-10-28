@@ -1,6 +1,6 @@
 {
   "name": "@pidong/mx-puppet-bridge",
-  "version": "0.2.0-beta9",
+  "version": "0.2.1",
   "description": "Matrix Puppeting Bridge library",
   "repository": {
     "type": "git",

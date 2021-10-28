@@ -98,7 +98,7 @@ export class Postgres implements IDatabaseConnector {
 		log.silly("BulkInsert:", sql);
 		this.db.tx(t => {
 			const queries = items.map(l => {
-				return t.none(sql, l);
+				return t.none(Postgres.ParameterizeSql(sql), l);
 			});
 			return t.batch(queries);
 		})
