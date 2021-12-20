@@ -222,7 +222,7 @@ export class Provisioner {
 		this.bridge.emit("puppetNew", puppetId, data);
 	}
 
-	public async delete(puppetMxid: string, puppetId: number) {
+	public async delete(puppetMxid: string, puppetId: number, kick = false) {
 		log.info(`Deleting puppet with id ${puppetId}`);
 		const data = await this.get(puppetId);
 		if (!data || data.puppetMxid !== puppetMxid) {
@@ -230,7 +230,7 @@ export class Provisioner {
 		}
 		// await this.bridge.roomSync.deleteForPuppet(puppetId);
 		await this.puppetStore.delete(puppetId);
-		await this.adjustMuteEverywhere(puppetMxid);
+		await this.adjustMuteEverywhere(puppetMxid, kick);
 		this.bridge.emit("puppetDelete", puppetId);
 	}
 
@@ -413,7 +413,7 @@ export class Provisioner {
 		}
 	}
 
-	public async adjustMuteIfInRoom(userId: string, room: string) {
+	public async adjustMuteIfInRoom(userId: string, room: string, kick = false) {
 		const client = await this.bridge.roomSync.getRoomOp(room);
 		if (!client) {
 			throw new Error("Failed to get operator of " + room);
@@ -426,7 +426,11 @@ export class Provisioner {
 		} catch (err) {
 			log.error("Error getting room members", err.error || err.body || err);
 		}
-		await this.adjustMute(userId, room);
+		if (kick) {
+			await client.kickUser(userId, room);
+		} else {
+			await this.adjustMute(userId, room);
+		}
 	}
 
 	public async adjustMuteListRooms(puppetId: number, userId: string) {
@@ -450,10 +454,10 @@ export class Provisioner {
 		}
 	}
 
-	public async adjustMuteEverywhere(userId: string) {
+	public async adjustMuteEverywhere(userId: string, kick = false) {
 		const entries = await this.bridge.roomStore.getAll();
 		for (const entry of entries) {
-			await this.adjustMuteIfInRoom(userId, entry.mxid);
+			await this.adjustMuteIfInRoom(userId, entry.mxid, kick);
 		}
 	}
 

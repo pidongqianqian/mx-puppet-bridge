@@ -254,7 +254,7 @@ export class BotProvisioner {
 			}
 			return;
 		}
-		await this.provisioner.delete(sender, puppetId);
+		await this.provisioner.delete(sender, puppetId, true);
 		if (roomId) {
 			await this.sendMessage(roomId, `Removed link with ID ${puppetId}`);
 		}
