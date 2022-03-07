@@ -13,7 +13,7 @@ limitations under the License.
 
 import { PuppetBridge } from "./puppetbridge";
 import {RetDataFn, IRetData, IRemoteRoom, IPuppetData, IRemoteEmote, IRemoteEmoteFragment} from "./interfaces";
-import { Provisioner } from "./provisioner";
+import {IProvisionerDesc, Provisioner} from "./provisioner";
 import { PuppetType, PUPPET_TYPES } from "./db/puppetstore";
 import { Log } from "./log";
 import { TimedCache } from "./structures/timedcache";
@@ -467,29 +467,7 @@ Usage: \`adminme <room resolvable>\``,
 					await sendMessage("Nothing linked yet!");
 					return;
 				}
-				let reply = "";
-				for (const d of descs) {
-					const users = await this.bridge.hooks.listUsers(d.puppetId);
-					reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
-					for (const u of users) {
-						let replyPart = "";
-						if (u.category) {
-							replyPart = `\n### ${u.name}:\n\n`;
-						} else {
-							const mxid = await this.bridge.getMxidForUser({
-								puppetId: d.puppetId,
-								userId: u.id!,
-							}, false);
-							replyPart = ` - ${u.name}: [${u.name}](https://matrix.to/#/${mxid})\n`;
-						}
-						if (reply.length + replyPart.length > MAX_MSG_SIZE) {
-							await sendMessage(reply);
-							reply = "";
-						}
-						reply += replyPart;
-					}
-				}
-				await sendMessage(reply);
+				this.syncUsers(sender, param, sendMessage,descs, this.bridge.hooks);
 			},
 			help: `Lists all users that are linked currently, from all links.
 
@@ -634,6 +612,7 @@ Usage: \`listgroups\``,
 					}
 				}
 				await sendMessage("syncChannels");
+				this.syncUsers(sender, param, sendMessage,descs, this.bridge.hooks);
 			},
 			help: `Synchronize and list all groups that are linked currently, from all links.
 
@@ -963,5 +942,44 @@ Usage: \`create <puppetId>\``,
 	public kickUser(userId: string, roomId: string, reason: string) {
 		const client = this.bridge.botIntent.underlyingClient;
 		return client.kickUser(userId, roomId, reason);
+	}
+
+	public async syncUsers(sender: string, param: string, sendMessage: SendMessageFn, descs:IProvisionerDesc[], that) {
+		let reply = "";
+		let contactsIds: string[] = [];
+		for (const d of descs) {
+			const users = await that.listUsers(d.puppetId);
+			reply += `## ${d.puppetId}: ${d.desc}:\n\n`;
+			for (const u of users) {
+				let replyPart = "";
+				if (u.category) {
+					replyPart = `\n### ${u.name}:\n\n`;
+				} else {
+					const mxid = await this.bridge.getMxidForUser({
+						puppetId: d.puppetId,
+						userId: u.id!,
+					}, false);
+					replyPart = ` - ${u.name}: [${u.name}](https://matrix.to/#/${mxid})\n`;
+					contactsIds.push(mxid);
+				}
+				if (reply.length + replyPart.length > MAX_MSG_SIZE) {
+					await sendMessage(reply);
+					reply = "";
+				}
+				reply += replyPart;
+			}
+		}
+		await sendMessage(reply);
+		const token = await this.bridge.provisioner.getToken(sender);
+		const client = await this.bridge.userSync.getClientFromTokenCallback(token);
+		const data = {
+			contacts_type: 'slack',
+			contacts_ids: contactsIds,
+			bridge_id: contactsIds[0]
+		}
+		if (client) {
+			client.doRequest("POST", "/_matrix/client/r0/account/account_contacts", null, data).then(response => {
+			});
+		}
 	}
 }
