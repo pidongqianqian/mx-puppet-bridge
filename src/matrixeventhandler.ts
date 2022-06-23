@@ -206,7 +206,7 @@ export class MatrixEventHandler {
 			return;
 		}
 
-		if (["m.room.name", "m.room.topic"].includes(event.type)) {
+		if (["m.room.name", "m.room.topic", "m.room.pinned_events"].includes(event.type)) {
 			log.verbose("room meta update", event);
 			await this.handleRoomMetaUpdateEvent(roomId, event);
 			return;

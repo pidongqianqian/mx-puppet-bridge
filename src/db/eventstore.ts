@@ -74,6 +74,21 @@ export class DbEventStore {
 		return result;
 	}
 
+	public async getRemoteByMatrixId(puppetId: number, matrixId: string): Promise<string[]> {
+		const stopTimer = this.db.latency.startTimer(this.labels("select_remote"));
+		const result: string[] = [];
+		const rows = await this.db.All(
+			"SELECT * FROM event_store WHERE puppet_id = $p AND matrix_id = $m", {
+				p: puppetId,
+				m: matrixId,
+			});
+		for (const row of rows) {
+			result.push(row.remote_id as string);
+		}
+		stopTimer();
+		return result;
+	}
+
 	private labels(queryName: string): object {
 		return {
 			protocol: this.protocol,

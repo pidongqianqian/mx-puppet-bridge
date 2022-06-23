@@ -56,4 +56,9 @@ export class EventSyncroniser {
 		const dbPuppetId = await this.bridge.namespaceHandler.getDbPuppetId(room.puppetId);
 		return await this.eventStore.getRemote(dbPuppetId, room.roomId, matrixId);
 	}
+
+	public async getRemoteIdByMatrixId(matrixId: string): Promise<string[]> {
+		const dbPuppetId = await this.bridge.namespaceHandler.getDbPuppetId(-1);
+		return await this.eventStore.getRemoteByMatrixId(dbPuppetId, matrixId);
+	}
 }
